@@ -6,6 +6,7 @@ import com.wj.exception.ExportDataException;
 import com.wj.exception.ImportDataException;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -181,12 +182,12 @@ public class ExcelUtil {
     }
 
     private static Workbook createWorkbook(File file) {
-        Workbook workbook;
+        Workbook workbook = null;
         String name = file.getName();
         if (name.contains(XLS)) {
             workbook = new HSSFWorkbook();
         }
-        else {
+        else if(name.contains(XLSX)){
             workbook = new XSSFWorkbook();
         }
         return workbook;
@@ -196,41 +197,39 @@ public class ExcelUtil {
         if (data.getTitles() == null) {
             return;
         }
-        int rowIndex = writeTitlesToExcel(wb, sheet, data.getTitles());
+        int rowIndex = writeTags(wb, sheet, data.getTags(), data.getTitles().size());
+        rowIndex = writeTitlesToExcel(wb, sheet, data.getTitles(), rowIndex);
         writeRowsToExcel(wb, sheet, data.getRows(), rowIndex);
         autoSizeColumns(sheet, data.getTitles().size() + 1);
     }
 
-    private static int writeTitlesToExcel(Workbook wb, Sheet sheet, List<Object> titles) {
+    private static int writeTags(Workbook wb, Sheet sheet, String tags, int columnSize) {
+        if (tags != null && tags.length() != 0) {
+            CellRangeAddress region = new CellRangeAddress(0, 0, 0, columnSize-1);
+            sheet.addMergedRegion(region);
+            int rowIndex = 0;
+            CellStyle style = getDefaultHeaderCellStyle(wb);
+            Row row = sheet.createRow(rowIndex);
+            row.setHeightInPoints(40);
+            Cell cell = row.createCell(0);
+            cell.setCellValue(tags);
+            cell.setCellStyle(style);
+            rowIndex++;
+
+            return rowIndex;
+        }
+        return 0;
+    }
+
+    private static int writeTitlesToExcel(Workbook wb, Sheet sheet, List<Object> titles, int rowIndex) {
         if (titles == null||titles.size() == 0) {
             return 0;
         }
-
-        int rowIndex = 0;
         int colIndex = 0;
-        Font titleFont = wb.createFont();
-        //设置字体
-        titleFont.setFontName("simsun");
-        //设置粗体
-        titleFont.setBoldweight(Short.MAX_VALUE);
-        //设置字号
-        titleFont.setFontHeightInPoints((short) 14);
-        //设置颜色
-        titleFont.setColor(IndexedColors.BLACK.index);
-        CellStyle titleStyle = wb.createCellStyle();
-        //水平居中
-        titleStyle.setAlignment(XSSFCellStyle.ALIGN_CENTER);
-        //垂直居中
-        titleStyle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER);
-        //设置图案颜色
-        titleStyle.setFillForegroundColor((short) 1);
-        //设置图案样式
-        titleStyle.setFillPattern(XSSFCellStyle.SOLID_FOREGROUND);
-        titleStyle.setFont(titleFont);
-        setBorder(titleStyle, BorderStyle.THIN, new XSSFColor(new java.awt.Color(0, 0, 0)));
+        CellStyle titleStyle = getDefaultTitleCellStyle(wb);
+
         Row titleRow = sheet.createRow(rowIndex);
         titleRow.setHeightInPoints(25);
-        colIndex = 0;
         for (Object field : titles) {
             Cell cell = titleRow.createCell(colIndex);
             cell.setCellValue(field.toString());
@@ -252,19 +251,10 @@ public class ExcelUtil {
      */
     private static void writeRowsToExcel(Workbook wb, Sheet sheet, List<List<Object>> rows, int rowIndex) {
         int colIndex;
-        Font dataFont = wb.createFont();
-        dataFont.setFontName("simsun");
-        dataFont.setFontHeightInPoints((short) 14);
-        dataFont.setColor(IndexedColors.BLACK.index);
-
-        CellStyle dataStyle = wb.createCellStyle();
-        dataStyle.setAlignment(XSSFCellStyle.ALIGN_CENTER);
-        dataStyle.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER);
-        dataStyle.setFont(dataFont);
-        setBorder(dataStyle, BorderStyle.THIN, new XSSFColor(new java.awt.Color(0, 0, 0)));
+        CellStyle dataStyle = getDefaultDataCellStyle(wb);
         for (List<Object> rowData : rows) {
             Row dataRow = sheet.createRow(rowIndex);
-            dataRow.setHeightInPoints(25);
+            dataRow.setHeightInPoints(20);
             colIndex = 0;
             for (Object cellData : rowData) {
                 Cell cell = dataRow.createCell(colIndex);
@@ -278,6 +268,57 @@ public class ExcelUtil {
             }
             rowIndex++;
         }
+    }
+
+    /**
+     * 头标题样式
+     * @param wb
+     * @return
+     */
+    public static CellStyle getDefaultHeaderCellStyle(Workbook wb) {
+        Font headerFont = wb.createFont();
+        headerFont.setFontName("Arial");
+        headerFont.setFontHeightInPoints((short) 18);
+        headerFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+        headerFont.setColor(IndexedColors.BLACK.getIndex());
+        CellStyle style = wb.createCellStyle();
+        setStyle(style, headerFont);
+        return style;
+    }
+
+    /**
+     * 标题样式
+     * @param wb
+     * @return
+     */
+    public static CellStyle getDefaultTitleCellStyle(Workbook wb) {
+        Font titleFont = wb.createFont();
+        //设置字体
+        titleFont.setFontName("Arial");
+        //设置粗体
+        titleFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+        //设置字号
+        titleFont.setFontHeightInPoints((short) 16);
+        //设置颜色
+        titleFont.setColor(IndexedColors.BLACK.index);
+        CellStyle style = wb.createCellStyle();
+
+        setStyle(style, titleFont);
+        return style;
+    }
+
+    /**
+     * 数据样式
+     * @param wb
+     * @return
+     */
+    public static CellStyle getDefaultDataCellStyle(Workbook wb) {
+        Font dataFont = wb.createFont();
+        dataFont.setFontName("Arial");
+        dataFont.setFontHeightInPoints((short) 10);
+        CellStyle dataStyle = wb.createCellStyle();
+        setStyle(dataStyle, dataFont);
+        return dataStyle;
     }
 
     /**
@@ -299,23 +340,23 @@ public class ExcelUtil {
         }
     }
     /**
-     * 设置边框
-     *
+     * 设置数据边框
      * @param style
-     * @param border
-     * @param color
      */
-    private static void setBorder(CellStyle style, BorderStyle border, XSSFColor color) {
-        short s = CellStyle.ALIGN_CENTER;
-        short u = CellStyle.SOLID_FOREGROUND;
-        style.setBorderTop(s);
-        style.setBorderLeft(s);
-        style.setBorderRight(s);
-        style.setBorderBottom(s);
-        style.setTopBorderColor(u);
-        style.setBottomBorderColor(u);
-        style.setLeftBorderColor(u);
-        style.setRightBorderColor(u);
+    private static void setStyle(CellStyle style, Font font) {
+        style.setBorderRight(CellStyle.BORDER_THIN);
+        style.setRightBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setBorderLeft(CellStyle.BORDER_THIN);
+        style.setLeftBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setBorderTop(CellStyle.BORDER_THIN);
+        style.setTopBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setBorderBottom(CellStyle.BORDER_THIN);
+        style.setBottomBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
+
+        style.setAlignment(XSSFCellStyle.ALIGN_CENTER);
+        //垂直居中
+        style.setVerticalAlignment(XSSFCellStyle.VERTICAL_CENTER);
+        style.setFont(font);
     }
 
     public static void main(String args[]) throws Exception {
@@ -338,6 +379,7 @@ public class ExcelUtil {
         row1.add("3");
         rows1.add(row1);
         exportData1.setRows(rows1);
+        exportData1.setTags("22222222222");
         exportDataList.add(exportData1);
 
         ExportData exportData2 = new ExportData();

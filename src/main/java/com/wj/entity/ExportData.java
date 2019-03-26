@@ -14,6 +14,7 @@ public class ExportData implements Serializable {
     private String sheetName;
     private List<Object> titles;
     private List<List<Object>> rows;
+    private String tags;
 
     public String getSheetName() {
         return sheetName;
@@ -37,5 +38,13 @@ public class ExportData implements Serializable {
 
     public void setRows(List<List<Object>> rows) {
         this.rows = rows;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
     }
 }
