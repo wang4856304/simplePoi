@@ -8,10 +8,7 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
-import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.util.*;
@@ -23,8 +20,8 @@ import java.util.*;
  */
 public class ExcelUtil {
 
-    private static final String XLS = "xls";
-    private static final String XLSX = "xlsx";
+    public static final String XLS = "xls";
+    public static final String XLSX = "xlsx";
 
 
     /**
@@ -36,7 +33,7 @@ public class ExcelUtil {
      * @return
      * @throws Exception
      */
-    public static <T> List<T> importExcel(InputStream inputStream, Class clazz, int sheetNum) throws Exception {
+    public static <T> List<T> importExcel(InputStream inputStream, Class clazz, int sheetNum) {
         if (inputStream == null || clazz == null) {
             return null;
         }
@@ -93,8 +90,11 @@ public class ExcelUtil {
             throw new ImportDataException("import excel data error", e);
         }
         finally {
-            if (inputStream != null) {
+            try {
                 inputStream.close();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -183,12 +183,12 @@ public class ExcelUtil {
         }
     }
 
-    public static Workbook exportExcel(List<ExportData> exportDataList) {
+    public static Workbook exportExcelWorkbook(List<ExportData> exportDataList, String extName) {
         if (exportDataList == null || exportDataList.size() == 0) {
             return null;
         }
         try {
-            Workbook wb = createWorkbook(XLSX);
+            Workbook wb = createWorkbook(extName);
             int sheetNum = 1;
             for (ExportData exportData: exportDataList) {
                 String sheetName = exportData.getSheetName();
@@ -199,11 +199,6 @@ public class ExcelUtil {
                 writeExcel(wb, sheet, exportData);
                 sheetNum++;
             }
-            /*outputStream = response.getOutputStream();
-            response.reset();
-            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.addHeader("Content-Disposition", "attachment;filename=trendAnalysisHistory.xlsx");
-            wb.write(outputStream);*/
             return wb;
         }
         catch (Exception e) {
@@ -215,10 +210,10 @@ public class ExcelUtil {
         Workbook workbook = null;
         String name = file.getName();
         String extName = name.substring(name.lastIndexOf(".")+1);
-        if (extName.equalsIgnoreCase(XLS)) {
+        if (XLS.equalsIgnoreCase(extName)) {
             workbook = new HSSFWorkbook();
         }
-        else if(extName.equalsIgnoreCase(XLSX)){
+        else if(XLSX.equalsIgnoreCase(extName)){
             workbook = new XSSFWorkbook();
         }
         return workbook;
@@ -226,10 +221,10 @@ public class ExcelUtil {
 
     private static Workbook createWorkbook(String extName) {
         Workbook workbook = null;
-        if (extName.equalsIgnoreCase(XLS)) {
+        if (XLS.equalsIgnoreCase(extName)) {
             workbook = new HSSFWorkbook();
         }
-        else if(extName.equalsIgnoreCase(XLSX)){
+        else if(XLSX.equalsIgnoreCase(extName)){
             workbook = new XSSFWorkbook();
         }
         return workbook;
